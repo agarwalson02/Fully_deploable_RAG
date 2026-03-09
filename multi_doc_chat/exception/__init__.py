@@ -50,3 +50,9 @@ class MyException(Exception):
         Returns the string representation of the error message.
         """
         return self.error_message
+
+class DocumentPortalException(MyException):
+    """
+    Specific exception for Document Portal related errors.
+    """
+    pass

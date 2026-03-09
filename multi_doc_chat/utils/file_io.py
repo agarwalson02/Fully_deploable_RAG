@@ -4,13 +4,10 @@ import re
 import uuid
 from pathlib import Path
 from typing import Iterable, List
-from multi_doc_chat.logger.cutom_logger import CustomLogger
-from multi_doc_chat.exception.custom_exception import DocumentPortalException
+from multi_doc_chat.logger import log
+from multi_doc_chat.exception import DocumentPortalException
 
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".txt", ".pptx", ".md", ".csv", ".xlsx", ".xls", ".db", ".sqlite", ".sqlite3"}
-
-# Local logger instance
-log = CustomLogger().get_logger(__name__)
 
 
 def save_uploaded_files(uploaded_files: Iterable, target_dir: Path) -> List[Path]:
@@ -55,4 +52,4 @@ def save_uploaded_files(uploaded_files: Iterable, target_dir: Path) -> List[Path
         return saved
     except Exception as e:
         log.error("Failed to save uploaded files", error=str(e), dir=str(target_dir))
-        raise DocumentPortalException("Failed to save uploaded files", e) from e
+        raise DocumentPortalException("Failed to save uploaded files", sys) from e

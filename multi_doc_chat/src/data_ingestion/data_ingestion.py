@@ -4,14 +4,14 @@ from typing import Iterable ,List , Optional,Dict,Any
 from langchain_core.documents import Document
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores import FAISS
-from utils.model_loader import ModelLoader
-from exception import MyException
+from multi_doc_chat.utils.model_loader import ModelLoader
+from multi_doc_chat.exception import MyException, DocumentPortalException
 from datetime import datetime
-from utils.file_io import save_uploaded_files
-from utils.document_ops import load_documents
+from multi_doc_chat.utils.file_io import save_uploaded_files
+from multi_doc_chat.utils.document_ops import load_documents
+from multi_doc_chat.logger import log
 import hashlib
 import sys
-import logger
 import os
 import json
 import uuid
@@ -65,52 +65,52 @@ class ChatIngestor:
         return chunks
     
     def built_retriever(self,
-        uploaded_files:Iterable,
+        uploaded_files: Iterable,
         *,
-        chunk_size:int=1000,
-        chunk_overlap:int=200,
-        k:int=5,
-        search_type:str="mmr",
-        fetch_k:int=20,
-        lambda_mult:float=0.5
-        ):
+        chunk_size: int = 1000,
+        chunk_overlap: int = 200,
+        k: int = 5,
+        search_type: str = "mmr",
+        fetch_k: int = 20,
+        lambda_mult: float = 0.5
+    ):
+        try:
+            paths = save_uploaded_files(uploaded_files, self.temp_dir)
+            docs = load_documents(paths)
+            if not docs:
+                raise MyException("No valid document", sys)
+            chunks = self._split(docs, chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+
+            fm = FaissManager(self.faiss_dir, self.model_loader)
+            texts = [c.page_content for c in chunks]
+            metas = [c.metadata for c in chunks]
+
             try:
-                paths=save_upladed_files(uploaded_files,self.temp_dir)
-                docs=load_documents(paths)
-                if not docs:
-                    raise MyException(f"No valid document",sys)
-                chunks=self._split(docs,chunk_size=chunk_size,chunk_overlap=chunk_overlap)
+                vs = fm.load_or_create(texts=texts, metadatas=metas)
+            except Exception:
+                vs = fm.load_or_create(texts=texts, metadatas=metas)
 
-                fm=FaissManager(self.faiss_dir,self.model_loader)
-                texts= [c.page_content for c in chunks]
-                metas= [c.metadata for c in chunks]
+            added = fm.add_documents(chunks)
+            log.info("FAISS index updated", added=added, index=str(self.faiss_dir))
 
-                try:
-                    vs = fm.load_or_create(texts=texts, metadatas=metas)
-                except Exception:
-                    vs = fm.load_or_create(texts=texts, metadatas=metas)
+            # Configure search parameters based on search type
+            search_kwargs = {"k": k}
 
-                added = fm.add_documents(chunks)
-                log.info("FAISS index updated", added=added, index=str(self.faiss_dir))
+            if search_type == "mmr":
+                # MMR needs fetch_k (docs to fetch) and lambda_mult (diversity parameter)
+                search_kwargs["fetch_k"] = fetch_k
+                search_kwargs["lambda_mult"] = lambda_mult
+                log.info("Using MMR search", k=k, fetch_k=fetch_k, lambda_mult=lambda_mult)
 
-                # Configure search parameters based on search type
-                search_kwargs = {"k": k}
-                
-                if search_type == "mmr":
-                    # MMR needs fetch_k (docs to fetch) and lambda_mult (diversity parameter)
-                    search_kwargs["fetch_k"] = fetch_k
-                    search_kwargs["lambda_mult"] = lambda_mult
-                    log.info("Using MMR search", k=k, fetch_k=fetch_k, lambda_mult=lambda_mult)
-                
-                return vs.as_retriever(search_type=search_type, search_kwargs=search_kwargs)
+            return vs.as_retriever(search_type=search_type, search_kwargs=search_kwargs)
 
-            except Exception as e:
-                log.error("Failed to build retriever", error=str(e))
-                raise DocumentPortalException("Failed to build retriever", e) from e
+        except Exception as e:
+            log.error("Failed to build retriever", error=str(e))
+            raise DocumentPortalException("Failed to build retriever", sys) from e
 
 
 class FaissManager:
-    def __init__(self,index_dirL:Path,model_loader:Optional[ModelLoader]=None):
+    def __init__(self, index_dir: Path, model_loader: Optional[ModelLoader] = None):
         self.index_dir = Path(index_dir)
         self.index_dir.mkdir(parents=True, exist_ok=True)
 

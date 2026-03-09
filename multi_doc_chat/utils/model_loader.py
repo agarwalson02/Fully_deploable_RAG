@@ -2,10 +2,10 @@ import os
 import sys
 import json
 from dotenv import load_dotenv
-from utils.config_loader import load_config
-from langchain_nebius import ChatNebius , NebiusEmbeddings
-import logger
-from exception import MyException
+from multi_doc_chat.utils.config_loader import load_config
+from langchain_nebius import ChatNebius, NebiusEmbeddings
+from multi_doc_chat.logger import log
+from multi_doc_chat.exception import MyException
 
 class ApiKeyManager:
     REQUIRED_KEYS=["NEBIUS_API_KEY"]
@@ -17,8 +17,8 @@ class ApiKeyManager:
             if not self.api_keys.get(key):
                 env_val=os.getenv(key)
                 if env_val:
-                    self.api_key[key]=env_val
-                    log.info(f"Loaded {key} from indivitual env var")
+                    self.api_keys[key] = env_val
+                    log.info(f"Loaded {key} from individual env var")
 
         missing= [k for k in self.REQUIRED_KEYS if not self.api_keys.get(k)]
         if missing:
@@ -38,11 +38,11 @@ class ModelLoader:
     """
 
     def __init__(self):
-        if os.getenv("ENV","local").lower() != "production":
+        if os.getenv("ENV", "local").lower() != "production":
             load_dotenv()
             log.info("Running in local mode: env loaded")
         else:
-            leg.info("Running in production mode")
+            log.info("Running in production mode")
         
         self.api_key_mngr=ApiKeyManager()
         self.config=load_config()
@@ -55,7 +55,7 @@ class ModelLoader:
         try:
             model_name=self.config["embedding_model"]["model"]
             log.info("Embedding Model Loaded", model=model_name)
-            return NebiusEmbeddings(model=model_name, NEBIUS_API_KEY=self.api_key_mngr.get("NEBIUS_API_KEY"))
+            return NebiusEmbeddings(model=model_name, api_key=self.api_key_mngr.get("NEBIUS_API_KEY"))
 
         except Exception as e:
             raise MyException(f"Failed to load model",sys) from e
@@ -83,13 +83,25 @@ class ModelLoader:
             return ChatNebius(
                 model=model_name,
                 temperature=temperature,
-                max_output_tokens=max_tokens
+                max_tokens=max_tokens
             )
         else:
-            log.error("Unsupported LLM provider",provider=provider)
-            raise MyException(f"Unsupported LLM provider :{provider}")
+            log.error("Unsupported LLM provider", provider=provider)
+            raise MyException(f"Unsupported LLM provider: {provider}", sys)
 
 if __name__=="__main__":
     loader=ModelLoader()
+
+        # Test Embedding
+    embeddings = loader.load_embeddings()
+    print(f"Embedding Model Loaded: {embeddings}")
+    result = embeddings.embed_query("Hello, how are you?")
+    print(f"Embedding Result: {result}")
+
+    # Test LLM
+    llm = loader.load_llm()
+    print(f"LLM Loaded: {llm}")
+    result = llm.invoke("Hello, how are you?")
+    print(f"LLM Result: {result.content}")
 
  
