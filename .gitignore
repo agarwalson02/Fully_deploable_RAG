@@ -208,3 +208,4 @@ __marimo__/
 /notebooks
 data/
 faiss_index/
+multi_doc_chat/evaluation/

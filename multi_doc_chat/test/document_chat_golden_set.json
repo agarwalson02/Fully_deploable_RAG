@@ -1,0 +1,26 @@
+{
+  "name": "document-chat-v1",
+  "version": "1.0.0",
+  "examples": [
+    {
+      "id": "e21ab1c0342c",
+      "input": "\n    JOHN DOE\n    Software Engineer\n    Experience:\n    - Acme Corp (2020-Present): Developed scalable microservices using Python and Docker. Managed a team of 3 junior developers.\n    - TechNova (2018-2020): Frontend developer using React and Redux. Improved page load times by 20%.\n    Education: B.S. in Computer Science, State University.\n    ",
+      "expected": "John Doe works as a Software Engineer at Acme Corp, where he develops microservices using Python and Docker.",
+      "category": "resume",
+      "difficulty": "easy",
+      "metadata": {
+        "source": "uploaded_document"
+      }
+    },
+    {
+      "id": "51c528334a15",
+      "input": "\n    EMPLOYEE HANDBOOK 2024\n    Leave Policy:\n    Employees are entitled to 20 days of paid time off (PTO) per year. Up to 5 days of unused PTO can be carried over to the next year. Sick leave is separate and provides 10 days per year, non-accruing.\n    Remote Work:\n    Employees may work from home up to 2 days a week with manager approval. Core hours are 10 AM to 3 PM local time.\n    ",
+      "expected": "Employees receive 20 days of PTO annually, with the option to carry over up to 5 unused days to the following year. Sick leave is a separate 10-day allowance.",
+      "category": "hr_document",
+      "difficulty": "medium",
+      "metadata": {
+        "source": "company_policy"
+      }
+    }
+  ]
+}
