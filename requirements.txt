@@ -24,6 +24,5 @@ langsmith
 openai
 pandas
 
-ragas
-ragas.metrics
-openai
+
+pytest
